@@ -70,39 +70,37 @@ public class UserServiceImpl implements UserService {
         return userDao.findByPage(page, pageSize);
     }
 
+    //高级查询
     //Map<String, String> searchCriteria-->>ui预定义查询键和查询字段（一致且硬编码），只需拼接值
+    //功能缺陷：使根据string类型查询的方法冗余
+    //daoimpl做模糊查询
     @Override
     public List<User> searchUsers(String operatorToken, Map<String, String> searchCriteria) {
+
         authService.checkPermission(operatorToken, "admin");
+        
+        //移除所有值为空的条件，确保Map中都是有效的查询条件
+        if (searchCriteria != null) {
+            searchCriteria.values().removeIf(value -> value == null || value.trim().isEmpty());
+        }
+
+        //如果所有条件都为空，则抛出异常或返回空列表
         if (searchCriteria == null || searchCriteria.isEmpty()) {
-            throw new BusinessException("搜索条件不能为空！");
+            throw new BusinessException("至少需要提供一个有效的搜索条件！");
         }
         
-        // 适配UserDao的search(String keyword)：将多个条件拼接为一个关键词
-        StringBuilder keywordBuilder = new StringBuilder();
-
-        //循环遍历输入的所有值，拼接
-        for (String value : searchCriteria.values()) {
-            if (!ValidationUtil.isEmpty(value)) {
-                keywordBuilder.append(value).append(" ");
-            }
-        }
-
-        String keyword = keywordBuilder.toString().trim();
-
-        if (ValidationUtil.isEmpty(keyword)) {
-            throw new BusinessException("搜索关键词不能为空！");
-        }
-        
-        return userDao.search(keyword);
+        //将结构化的Map传递给DAO层
+        return userDao.search(searchCriteria);
     }
 
+    //统计用户总数
     @Override
     public long countUsers(String operatorToken){
         authService.checkPermission(operatorToken, "admin");
         return userDao.count();
     }
 
+    //管理员创建用户（面向开发者一方创建，与注册用户区分）
     @Override
     public User createUser(String adminToken, User newUser) {
         authService.checkPermission(adminToken, "admin");
@@ -111,6 +109,16 @@ public class UserServiceImpl implements UserService {
             ValidationUtil.isEmpty(newUser.getRealName()) || ValidationUtil.isEmpty(newUser.getUserRole())) {
             throw new BusinessException("用户名、密码、真实姓名和角色不能为空！");
         }
+        if (!ValidationUtil.isValidPassword(newUser.getPassword())) {
+            throw new BusinessException("密码格式错误，需为6-20位字母和数字的组合！");
+        }
+        if (newUser.getEmail() != null && !ValidationUtil.isValidEmail(newUser.getEmail())) {
+            throw new BusinessException("邮箱格式错误！");
+        }
+        if (newUser.getPhone() != null && !ValidationUtil.isValidPhone(newUser.getPhone())) {
+            throw new BusinessException("手机号格式错误！");
+        }
+    
 
         validateRole(newUser.getUserRole());
 
@@ -118,19 +126,28 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户名已存在！");
         }
 
+        //密码加密
         newUser.setPassword(MD5Util.encrypt(newUser.getPassword()));
+
+        //初始化状态：初始状态为空则置active，否则根据输入填充
         newUser.setStatus(ValidationUtil.isEmpty(newUser.getStatus()) ? "active" : newUser.getStatus());
+
+        //初始化时间
         newUser.setCreatedAt(new Date());
         newUser.setUpdatedAt(new Date());
         
+        //存入数据库
         int newUserId = userDao.insert(newUser);
+
+        //返回自增主键（如果daoimpl写好了返回受影响行数，就不能这么写，否则daoimpl做出对应更改）
         newUser.setUserId(newUserId);
         
-        // 返回创建的用户信息，但密码字段清空，防止泄露
+        //返回创建的用户信息，但密码字段清空，防止泄露
         newUser.setPassword(null);
         return newUser;
     }
 
+    //更改用户信息（不改用户名和密码）
     @Override
     public void updateUser(String operatorToken, User userToUpdate) {
         User operator = authService.checkLogin(operatorToken);
@@ -176,6 +193,7 @@ public class UserServiceImpl implements UserService {
         userDao.update(dbUser);
     }
 
+    //管理员更改用户状态
     @Override
     public void changeUserStatus(String adminToken, int userId, String newStatus) {
         authService.checkPermission(adminToken, "admin");
@@ -183,6 +201,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户ID或状态不能为空！");
         }
 
+        // 在changeUserStatus方法中添加状态值验证
+        if (!"active".equals(newStatus) && !"inactive".equals(newStatus) && !"locked".equals(newStatus)) {
+            throw new BusinessException("无效的用户状态！");
+        }
+        
         User user = userDao.findById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在！");
@@ -193,6 +216,7 @@ public class UserServiceImpl implements UserService {
         userDao.update(user);
     }
 
+    //管理员重置用户密码
     @Override
     public void resetUserPassword(String adminToken, int userId, String newPassword) {
         authService.checkPermission(adminToken, "admin");
@@ -200,16 +224,24 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户ID或新密码不能为空！");
         }
 
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+                throw new BusinessException("新密码格式错误，需为6-20位字母和数字的组合！");
+            }
+            
+
         User user = userDao.findById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在！");
         }
         
         user.setPassword(MD5Util.encrypt(newPassword));
+        
         user.setUpdatedAt(new Date());
+
         userDao.update(user);
     }
 
+    //更改自己的密码
     @Override
     public void changeOwnPassword(String operatorToken, String oldPassword, String newPassword) {
         User operator = authService.checkLogin(operatorToken);
@@ -221,6 +253,10 @@ public class UserServiceImpl implements UserService {
         if (oldPassword.equals(newPassword)) {
             throw new BusinessException("新密码不能与原密码相同！");
         }
+
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+                throw new BusinessException("新密码格式错误，需为6-20位字母和数字的组合！");
+            }
 
         User dbUser = userDao.findById(operator.getUserId());
         if (dbUser == null) {
@@ -236,6 +272,7 @@ public class UserServiceImpl implements UserService {
         userDao.update(dbUser);
     }
 
+    //管理员删除用户
     @Override
     public void deleteUser(String adminToken, int userId) {
         authService.checkPermission(adminToken, "admin");
@@ -256,6 +293,7 @@ public class UserServiceImpl implements UserService {
         userDao.deleteById(userId);
     }
 
+    //更新用户最后登录时间
     @Override
     public void updateUserLastLoginTime(String username) {
         if (ValidationUtil.isEmpty(username)) {
@@ -270,6 +308,7 @@ public class UserServiceImpl implements UserService {
         userDao.update(user);
     }
 
+    //检查用户状态是否为active
     @Override
     public boolean checkUserStatusAvailable(int userId) {
         if (userId <= 0) {
@@ -282,6 +321,7 @@ public class UserServiceImpl implements UserService {
         return "active".equals(user.getStatus());
     }
 
+    //更新用户个人信息（面向普通用户）
     @Override
     public void updateOwnProfile(String operatorToken, Map<String, String> profileUpdates){
         User operator = authService.checkLogin(operatorToken);
@@ -294,20 +334,28 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在！");
         }
 
-        // 逐个处理更新字段
+        // 逐个处理更新字段（键值对）
         if (profileUpdates.containsKey("realName")) {
             dbUser.setRealName(profileUpdates.get("realName"));
         }
+
         if (profileUpdates.containsKey("email")) {
             String newEmail = profileUpdates.get("email");
             User existingUserByEmail = userDao.findByEmail(newEmail);
             if (existingUserByEmail != null && existingUserByEmail.getUserId() != dbUser.getUserId()) {
                 throw new BusinessException("邮箱已被其他用户使用！");
             }
+            if (!ValidationUtil.isValidEmail(newEmail)) {
+                throw new BusinessException("邮箱格式错误！");
+            }
             dbUser.setEmail(newEmail);
         }
         if (profileUpdates.containsKey("phone")) {
-            dbUser.setPhone(profileUpdates.get("phone"));
+            String newPhone = profileUpdates.get("phone");
+            if (!ValidationUtil.isValidPhone(newPhone)) {
+                throw new BusinessException("手机号格式错误！");
+            }
+            dbUser.setPhone(newPhone);
         }
         if (profileUpdates.containsKey("department")) {
             dbUser.setDepartment(profileUpdates.get("department"));

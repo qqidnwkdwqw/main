@@ -64,7 +64,7 @@ public interface UserService {
     List<User> searchUsers(String operatorToken, Map<String, String> searchCriteria);
 
     /**
-     * 统计用户总数。
+     * 统计用户总数
      * @param operatorToken 操作用户的会话令牌。
      * @return 用户总数。
      * @throws BusinessException 如果操作用户权限不足。
@@ -103,7 +103,7 @@ public interface UserService {
     void changeUserStatus(String adminToken, int userId, String newStatus);
 
     /**
-     * 管理员重置用户密码。
+     * 管理员重置用户密码
      * @param adminToken 管理员的会话令牌。
      * @param userId 要重置密码的用户ID。
      * @param newPassword 新的明文密码。

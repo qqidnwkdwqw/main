@@ -22,7 +22,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废或权限不足
      * @throws DAOException 如果数据库操作失败
      */
-    Device findDeviceById(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    Device findDeviceById(String operatorToken, Integer deviceId);
 
     /**
      * 根据设备编号查询设备
@@ -32,7 +32,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废或权限不足
      * @throws DAOException 如果数据库操作失败
      */
-    Device findDeviceByCode(String operatorToken, String deviceCode) throws BusinessException, DAOException;
+    Device findDeviceByCode(String operatorToken, String deviceCode);
 
     /**
      * 根据分类ID查询设备列表
@@ -42,7 +42,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户未登录
      * @throws DAOException 如果数据库操作失败
      */
-    List<Device> findDevicesByCategory(String operatorToken, Integer categoryId) throws BusinessException, DAOException;
+    List<Device> findDevicesByCategory(String operatorToken, Integer categoryId);
 
     /**
      * 根据状态查询设备列表
@@ -52,7 +52,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户未登录或状态无效
      * @throws DAOException 如果数据库操作失败
      */
-    List<Device> findDevicesByStatus(String operatorToken, String status) throws BusinessException, DAOException;
+    List<Device> findDevicesByStatus(String operatorToken, String status);
 
     /**
      * 分页查询所有设备（包含已报废但未软删除的）
@@ -63,7 +63,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户非管理员或分页参数无效
      * @throws DAOException 如果数据库操作失败
      */
-    List<Device> findAllDevicesByPage(String adminToken, int page, int pageSize) throws BusinessException, DAOException;
+    List<Device> findAllDevicesByPage(String adminToken, int page, int pageSize);
 
     /**
      * 搜索设备（根据名称、编号、描述等模糊搜索）
@@ -73,7 +73,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户未登录
      * @throws DAOException 如果数据库操作失败
      */
-    List<Device> searchDevices(String operatorToken, String keyword) throws BusinessException, DAOException;
+    List<Device> searchDevices(String operatorToken, String keyword);
 
     /**
      * 管理员添加新设备
@@ -83,7 +83,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备编号已存在、信息不完整或操作用户非管理员
      * @throws DAOException 如果数据库操作失败
      */
-    Device addDevice(String adminToken, Device newDevice) throws BusinessException, DAOException;
+    Device addDevice(String adminToken, Device newDevice);
 
     /**
      * 管理员更新设备信息
@@ -92,7 +92,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废、信息无效或操作用户非管理员
      * @throws DAOException 如果数据库操作失败
      */
-    void updateDevice(String adminToken, Device deviceToUpdate) throws BusinessException, DAOException;
+    void updateDevice(String adminToken, Device deviceToUpdate);
 
     /**
      * 管理员报废设备（软删除）
@@ -101,7 +101,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废、正在使用中或操作用户非管理员
      * @throws DAOException 如果数据库操作失败
      */
-    void scrapDevice(String adminToken, Integer deviceId) throws BusinessException, DAOException;
+    void scrapDevice(String adminToken, Integer deviceId);
 
     /**
      * 管理员或教师将设备状态改为维修中
@@ -110,7 +110,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废、状态不允许或权限不足
      * @throws DAOException 如果数据库操作失败
      */
-    void sendDeviceForRepair(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    void sendDeviceForRepair(String operatorToken, Integer deviceId);
 
     /**
      * 管理员或教师将设备状态从维修中改为可用
@@ -119,7 +119,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废、状态不是维修中或权限不足
      * @throws DAOException 如果数据库操作失败
      */
-    void returnDeviceFromRepair(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    void returnDeviceFromRepair(String operatorToken, Integer deviceId);
 
     /**
      * 统计各状态设备的数量
@@ -128,7 +128,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户非管理员
      * @throws DAOException 如果数据库操作失败
      */
-    Map<String, Integer> getDeviceStatusStatistics(String adminToken) throws BusinessException, DAOException;
+    Map<String, Integer> getDeviceStatusStatistics(String adminToken);
 
     /**
      * 管理员恢复已报废的设备
@@ -137,7 +137,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、未报废或操作用户非管理员
      * @throws DAOException 如果数据库操作失败
      */
-    void restoreScrappedDevice(String adminToken, Integer deviceId) throws BusinessException, DAOException;
+    void restoreScrappedDevice(String adminToken, Integer deviceId);
 
     /**
      * 根据存放位置查询设备列表
@@ -147,7 +147,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户未登录或位置为空
      * @throws DAOException 如果数据库操作失败
      */
-    List<Device> findDevicesByLocation(String operatorToken, String location) throws BusinessException, DAOException;
+    List<Device> findDevicesByLocation(String operatorToken, String location);
 
     /**
      * 更新设备使用统计信息（次数+1，累加使用时长）
@@ -157,7 +157,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、已报废、权限不足或时长无效
      * @throws DAOException 如果数据库操作失败
      */
-    void updateDeviceUsageStats(String operatorToken, Integer deviceId, Double usageHours) throws BusinessException, DAOException;
+    void updateDeviceUsageStats(String operatorToken, Integer deviceId, Double usageHours);
 
     /**
      * 检查设备是否可预约
@@ -167,7 +167,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在或操作用户未登录
      * @throws DAOException 如果数据库操作失败
      */
-    boolean checkDeviceReservable(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    boolean checkDeviceReservable(String operatorToken, Integer deviceId);
 
     /**
      * 管理员批量更新设备存放位置
@@ -177,7 +177,7 @@ public interface DeviceService {
      * @throws BusinessException 如果操作用户非管理员、设备ID无效或位置为空
      * @throws DAOException 如果数据库操作失败
      */
-    void batchUpdateDeviceLocation(String adminToken, List<Integer> deviceIds, String newLocation) throws BusinessException, DAOException;
+    void batchUpdateDeviceLocation(String adminToken, List<Integer> deviceIds, String newLocation);
 
     /**
      * 查询设备是否在保修期内
@@ -187,7 +187,7 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在、无购买日期或操作用户未登录
      * @throws DAOException 如果数据库操作失败
      */
-    boolean checkDeviceInWarranty(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    boolean checkDeviceInWarranty(String operatorToken, Integer deviceId);
 
     /**
      * 获取设备详细使用统计信息
@@ -197,5 +197,5 @@ public interface DeviceService {
      * @throws BusinessException 如果设备不存在或操作用户未登录
      * @throws DAOException 如果数据库操作失败
      */
-    String getDeviceUsageInfo(String operatorToken, Integer deviceId) throws BusinessException, DAOException;
+    String getDeviceUsageInfo(String operatorToken, Integer deviceId);
 }

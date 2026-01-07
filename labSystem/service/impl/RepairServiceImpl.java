@@ -29,11 +29,15 @@ public class RepairServiceImpl implements RepairService {
         this.authService = authService;
     }
 
-    //辅助方法 
+    //辅助方法 ：填充一张报修单关联数据（设备信息、报修人、处理人）
     private void fillAssociatedData(Repair repair) throws DAOException {
         if (repair == null) return;
+
+        // 设备信息
         Device device = deviceDao.findById(repair.getDeviceId());
+        // 报修人信息
         User reporter = userDao.findById(repair.getUserId());
+        // 处理人信息
         User resolver = repair.getResolvedBy() != null ? userDao.findById(repair.getResolvedBy()) : null;
 
         if (device != null) {
@@ -49,6 +53,7 @@ public class RepairServiceImpl implements RepairService {
         }
     }
 
+    // 创建报修单
     @Override
     public Repair createRepair(String userToken, Repair repair) throws BusinessException, DAOException {
         User currentUser = authService.checkLogin(userToken);
@@ -62,10 +67,13 @@ public class RepairServiceImpl implements RepairService {
         repair.setUserId(currentUser.getUserId());
         repair.setUpdatedAt(new Date());
 
+        //插入数据，返回报修id
         int newRepairId = repairDao.insert(repair);
+
         return getRepairById(userToken, newRepairId);
     }
 
+    // 根据报修id查询报修单
     @Override
     public Repair getRepairById(String operatorToken, int repairId) throws BusinessException, DAOException {
         User operator = authService.checkLogin(operatorToken);
@@ -80,14 +88,21 @@ public class RepairServiceImpl implements RepairService {
         return repair;
     }
 
+    // 用户查询自己的报修单列表
     @Override
     public List<Repair> getMyRepairs(String userToken) throws BusinessException, DAOException {
         User currentUser = authService.checkLogin(userToken);
+
+        //根据用户id查找用户所有报修列表
         List<Repair> repairs = repairDao.findByUserId(currentUser.getUserId());
+
+        // 给每个报修单填充关联数据
         repairs.forEach(this::fillAssociatedData);
+
         return repairs;
     }
 
+    // 管理员查询指定设备的报修单列表
     @Override
     public List<Repair> getRepairsByDevice(String operatorToken, int deviceId) throws BusinessException, DAOException {
         authService.checkLogin(operatorToken);
@@ -97,6 +112,7 @@ public class RepairServiceImpl implements RepairService {
         return repairs;
     }
 
+    // 管理员查询所有报修单列表（分页）
     @Override
     public List<Repair> getAllRepairs(String adminToken, int page, int pageSize) throws BusinessException, DAOException {
         authService.checkPermission(adminToken, "admin");
@@ -104,9 +120,12 @@ public class RepairServiceImpl implements RepairService {
         return repairDao.findByPage(page, pageSize);
     }
 
+    // 技术员处理报修单
     @Override
     public void processRepair(String technicianToken, int repairId) throws BusinessException, DAOException {
         User technician = authService.checkLogin(technicianToken);
+
+        //User暂时没有technician，后续可以拓展
         if (!"admin".equals(technician.getUserRole()) && !"technician".equals(technician.getUserRole())) {
             throw new BusinessException("权限不足，只有技术员或管理员可以处理报修单");
         }
@@ -121,6 +140,7 @@ public class RepairServiceImpl implements RepairService {
         repairDao.update(repair);
     }
 
+    // 技术员标记报修单为已解决
     @Override
     public void resolveRepair(String technicianToken, int repairId, String repairNotes) throws BusinessException, DAOException {
         User technician = authService.checkLogin(technicianToken);
@@ -132,13 +152,18 @@ public class RepairServiceImpl implements RepairService {
         if (repair == null) throw new BusinessException("报修单不存在");
         if (!repair.canBeResolved()) throw new BusinessException("当前报修单状态为【" + repair.getStatusDisplayName() + "】，无法标记为已解决");
 
+        
         repair.setStatus("resolved");
+        //维修说明
         repair.setRepairNotes(repairNotes);
+
         repair.setResolvedAt(new Date());
         repair.setUpdatedAt(new Date());
+
         repairDao.update(repair);
     }
 
+    // 管理员关闭报修单
     @Override
     public void closeRepair(String operatorToken, int repairId) throws BusinessException, DAOException {
         User operator = authService.checkLogin(operatorToken);
@@ -155,12 +180,14 @@ public class RepairServiceImpl implements RepairService {
         repairDao.update(repair);
     }
 
+    // 管理员查询报修单状态统计
     @Override
     public Map<String, Integer> getRepairStatusStatistics(String adminToken) throws BusinessException, DAOException {
         authService.checkPermission(adminToken, "admin");
         return repairDao.countByStatus();
     }
 
+    // 管理员或技术员根据报修状态查询报修单列表（分页）
     @Override
     public List<Repair> getRepairsByStatus(String operatorToken, String status, int page, int pageSize) throws BusinessException, DAOException {
         User operator = authService.checkLogin(operatorToken);
@@ -170,12 +197,17 @@ public class RepairServiceImpl implements RepairService {
         List<Repair> allRepairs;
         if ("admin".equals(operator.getUserRole()) || "technician".equals(operator.getUserRole())) {
             allRepairs = repairDao.findAll();
-        } else {
+        } 
+        // 普通用户只能查看自己的报修单
+        else {
             allRepairs = repairDao.findByUserId(operator.getUserId());
         }
 
+        // 过滤报修单状态
         List<Repair> filteredRepairs = allRepairs.stream()
+                //过滤条件，只保留状态等于参数status的报修单
                 .filter(r -> status.equals(r.getStatus()))
+                //将过滤后的结果重新收集为列表
                 .collect(Collectors.toList());
 
         int start = (page - 1) * pageSize;
@@ -186,6 +218,7 @@ public class RepairServiceImpl implements RepairService {
         return filteredRepairs.subList(start, end);
     }
 
+    // 技术员查询已指派的报修单（分页）
     @Override
     public List<Repair> getMyAssignedRepairs(String technicianToken) throws BusinessException, DAOException {
         User technician = authService.checkLogin(technicianToken);
@@ -199,6 +232,7 @@ public class RepairServiceImpl implements RepairService {
                 .collect(Collectors.toList());
     }
 
+    // 管理员更新报修单严重程度
     @Override
     public void updateRepairSeverity(String adminToken, int repairId, String severity) throws BusinessException, DAOException {
         authService.checkPermission(adminToken, "admin");
@@ -214,6 +248,7 @@ public class RepairServiceImpl implements RepairService {
         repairDao.update(repair);
     }
 
+    // 报修人或管理员取消报修单
     @Override
     public void cancelRepair(String operatorToken, int repairId) throws BusinessException, DAOException {
         User operator = authService.checkLogin(operatorToken);
@@ -227,11 +262,12 @@ public class RepairServiceImpl implements RepairService {
             throw new BusinessException("仅待处理状态的报修单可取消");
         }
 
-        repair.setStatus("closed"); // 用"closed"状态表示取消
+        repair.setStatus("closed"); // "closed"状态表示取消/关闭
         repair.setUpdatedAt(new Date());
         repairDao.update(repair);
     }
 
+    // 管理员或技术员查询紧急报修单（按创建时间排序）
     @Override
     public List<Repair> getUrgentRepairs(String operatorToken) throws BusinessException, DAOException {
         User operator = authService.checkLogin(operatorToken);

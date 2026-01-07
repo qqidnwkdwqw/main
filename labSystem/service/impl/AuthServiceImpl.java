@@ -25,7 +25,7 @@
             this.userDao = userDao;
         }
 
-        //注册
+        //注册（面向非管理，初始为学生）
         @Override
         public User register(User user) {
             //使用ValidationUtil参数校验
@@ -121,7 +121,7 @@
                 throw new BusinessException("新密码不能与旧密码相同！");
             }
 
-            //验证旧密码是否正确（用户输入旧密码的和数据库中加密后的相比较）
+            //验证旧密码是否正确（用户输入旧密码加密后的和数据库中加密过的相比较）
             User dbUser = userDao.findById(currentUser.getUserId());
             if (dbUser == null || !MD5Util.verify(oldPassword, dbUser.getPassword())) {
                 throw new AuthException("旧密码错误！");

@@ -3,6 +3,7 @@ package labSystem.dao;
 import labSystem.entity.User;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户DAO接口
@@ -74,5 +75,5 @@ public interface UserDao extends BaseDao<User, Integer> {
      * @return 用户列表
      * @throws SQLException
      */
-    List<User> search(String keyword) ;
+    List<User> search(Map<String, String> criteria);
 }

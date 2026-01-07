@@ -18,8 +18,8 @@ public class User {
     private String status;          // active, inactive, banned
     private String avatarUrl;
     private Date lastLoginTime;
-    private Date createdAt;
-    private Date updatedAt;
+    private Date createdAt;  // 创建时间
+    private Date updatedAt; // 最后更新时间
     
     // === 权限检查方法 ===
     public boolean isAdmin() {

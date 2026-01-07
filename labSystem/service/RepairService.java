@@ -52,7 +52,7 @@ public interface RepairService {
     List<Repair> getRepairsByDevice(String operatorToken, int deviceId) throws BusinessException, DAOException;
 
     /**
-     * 获取所有报修单（分页），通常管理员使用
+     * 获取所有报修单（分页），管理员使用
      * @param adminToken 管理员的token
      * @param page 页码
      * @param pageSize 每页大小
